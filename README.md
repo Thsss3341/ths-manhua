@@ -34,6 +34,14 @@ has a 话 section, volumes and extras get no chapter number, so 第16卷 isn't t
 trackers. It keeps the same source id as Keiyoushi's build, so uninstall that one first;
 library entries carry over.
 
+### Chapter order (漫画柜)
+
+漫画柜 only dates a manga's newest chapter, so sorting by upload date in the app has nothing to go
+on. Instead, the extension lists chapters in upload order, newest first, across all sections (chapter
+ids on the site grow with each upload). Choose **By source** in the app's chapter sort to read them
+in upload order. To list them grouped by section as on the site, turn off **章节按上传顺序排列** in
+the extension settings and refresh the manga.
+
 ### MAL tracking (漫画柜)
 
 MyAnimeList can't find 漫画柜's Chinese titles. In the extension settings, set **标题语言（方便MAL追踪）**:
@@ -41,7 +49,7 @@ MyAnimeList can't find 漫画柜's Chinese titles. In the extension settings, se
 | Option | Effect |
 |--------|--------|
 | 中文（漫画柜原标题） | Default, nothing is looked up. |
-| 中文，简介里加上MAL ID | Keeps the Chinese title and adds `MAL：<title> (id:12345)` to the top of the description. Paste `id:12345` into the MAL tracker search for an exact match. |
+| 中文，简介里加上MAL ID | Keeps the Chinese title and adds MAL's title and `id:12345` (on a line of its own) to the top of the description. Paste `id:12345` into the MAL tracker search for an exact match. |
 | 罗马音（MAL标题） / 英文 | Also renames the manga to MAL's romaji or English title, so the tracker search finds it as is. The Chinese title stays in the description. |
 
 When a manga's details load, the extension looks it up on [Bangumi](https://bgm.tv), which maps
@@ -52,7 +60,7 @@ which returns the MAL ID and MAL's titles. It uses everything 漫画柜 lists: t
 - **Exact match**: a Bangumi or AniList title is identical to one of 漫画柜's names.
 - **Likely match**: no identical title, but an entry from the same year has a similar title or the
   same author, e.g. 关于我转生后成为史莱姆的那件事, which Bangumi calls 关于我转生变成史莱姆这档事.
-  The MAL line then ends with **（非精确匹配，可能不准确）** and the manga is never renamed; check
+  The ID is then followed by **⚠ 非精确匹配，可能不准确** and the manga is never renamed; check
   the entry before tracking it.
 
 Manga that aren't found (often Chinese manhua, which MAL rarely lists) keep their Chinese title.
