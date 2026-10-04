@@ -53,13 +53,13 @@
         "name": "ManHuaGui",
         "packageName": "eu.kanade.tachiyomi.extension.zh.manhuaguiths",
         "resources": {
-          "apkUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/apk/tachiyomi-zh.manhuaguiths-v1.6.2.apk",
+          "apkUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/apk/tachiyomi-zh.manhuaguiths-v1.6.3.apk",
           "iconUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/icon/eu.kanade.tachiyomi.extension.zh.manhuaguiths.png",
-          "jarUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/jar/tachiyomi-zh.manhuaguiths-v1.6.2.jar"
+          "jarUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/jar/tachiyomi-zh.manhuaguiths-v1.6.3.jar"
         },
         "extensionLib": "1.6",
-        "versionCode": "106002",
-        "versionName": "1.6.2",
+        "versionCode": "106003",
+        "versionName": "1.6.3",
         "contentWarning": "CONTENT_WARNING_MIXED",
         "sources": [
           {
