@@ -329,6 +329,12 @@ abstract class Manhuagui :
             }
         }
 
+        // The page only dates the newest chapter, so apps can't sort the others by upload date.
+        // Chapter ids grow with each upload across all sections, so ordering by id puts the list
+        // in upload order, newest first: the app's "by source" sort then follows upload order.
+        if (preferences.getBoolean(UPLOAD_ORDER_PREF, true)) {
+            return chapters.sortedByDescending { CHAPTER_ID_REGEX.find(it.url)?.groupValues?.get(1)?.toLongOrNull() ?: -1L }
+        }
         return chapters
     }
 
@@ -392,6 +398,15 @@ abstract class Manhuagui :
             screen.addPreference(this)
         }
 
+        CheckBoxPreference(screen.context).run {
+            key = UPLOAD_ORDER_PREF
+            title = "章节按上传顺序排列"
+            summary = "开启：所有分区（单话、单行本、番外篇……）的章节按上传先后排列，App里选「按来源排序」即为按上传时间排序。" +
+                "关闭：按网站的分区顺序排列。更改后需下拉刷新漫画。"
+            setDefaultValue(true)
+            screen.addPreference(this)
+        }
+
         ListPreference(screen.context).run {
             key = MalTitles.PREF_KEY_TITLE_LANGUAGE
             title = "标题语言（方便MAL追踪）"
@@ -410,7 +425,7 @@ abstract class Manhuagui :
     private fun titleLanguageSummary(language: TitleLanguage): String = when (language) {
         TitleLanguage.CHINESE -> language.label
         TitleLanguage.CHINESE_WITH_ID ->
-            "${language.label}\n打开漫画页面时查找MAL条目，在简介顶部显示「MAL：标题 (id:12345)」。" +
+            "${language.label}\n打开漫画页面时查找MAL条目，在简介顶部显示MAL标题和「id:12345」。" +
                 "把「id:12345」粘贴到MAL追踪的搜索框即可精确匹配。标题不完全相同的条目会注明「可能不准确」。"
         else ->
             "${language.label}\n打开漫画页面时改名为MAL上的标题，MAL追踪可直接搜索到；只在标题完全匹配时改名，否则保留中文标题。" +
@@ -431,6 +446,8 @@ abstract class Manhuagui :
 
     companion object {
         private val YEAR_REGEX = Regex("""\d{4}""")
+        private val CHAPTER_ID_REGEX = Regex("""/(\d+)\.html""")
+        private const val UPLOAD_ORDER_PREF = "chapterUploadOrder"
 
         // Mihon keeps -2 as "no chapter number" instead of parsing one from the name.
         private const val UNNUMBERED_CHAPTER = -2f

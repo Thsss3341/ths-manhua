@@ -104,10 +104,12 @@ class MalTitles(baseClient: OkHttpClient, private val preferences: SharedPrefere
             else -> null
         }
         if (renamed != null) manga.title = renamed
-        // "id:12345" pasted into MAL's tracker search gives an exact match.
+        // "id:12345" pasted into MAL's tracker search gives an exact match. It sits on a line of its
+        // own, with nothing around it, so copying it doesn't pick up brackets or other text.
         val malLine = buildString {
-            append("MAL：", mal.romaji ?: mal.english ?: chineseTitle, " (id:", mal.malId, ")")
-            if (!mal.exact) append(LIKELY_NOTE)
+            append("MAL：", mal.romaji ?: mal.english ?: chineseTitle)
+            append("\nid:", mal.malId)
+            if (!mal.exact) append("\n", LIKELY_NOTE)
             if (renamed != null) append("\n中文名：", chineseTitle)
         }
         manga.description = listOfNotNull(malLine, manga.description?.takeIf { it.isNotBlank() })
@@ -373,7 +375,7 @@ class MalTitles(baseClient: OkHttpClient, private val preferences: SharedPrefere
     companion object {
         const val PREF_KEY_TITLE_LANGUAGE = "titleLanguage"
 
-        private const val LIKELY_NOTE = "（非精确匹配，可能不准确）"
+        private const val LIKELY_NOTE = "⚠ 非精确匹配，可能不准确"
         private const val CACHE_PREFIX = "malTitle:"
         private const val RECHECK_AFTER_MS = 7 * 24 * 60 * 60 * 1000L
         private const val USER_AGENT = "Thsss3341/ths-manhua (https://github.com/Thsss3341/ths-manhua)"
