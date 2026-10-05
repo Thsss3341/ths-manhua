@@ -2,6 +2,9 @@ package eu.kanade.tachiyomi.extension.zh.manhuagui
 
 import eu.kanade.tachiyomi.source.model.Filter
 
+/** Lists the logged-in user's 我的书架 instead of the catalogue; the other filters are ignored. */
+internal class BookshelfFilter : Filter.CheckBox("我的书架（需先在WebView登录，会忽略其他筛选）")
+
 internal open class UriPartFilter(
     displayName: String,
     val pair: Array<Pair<String, String>>,

@@ -98,6 +98,9 @@ abstract class Manhuagui :
     override suspend fun getLatestUpdates(page: Int): MangasPage = parseMangaList(client.get("$baseUrl/list/update_p$page.html").asJsoup())
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
+        if (query.isEmpty() && filters.firstInstanceOrNull<BookshelfFilter>()?.state == true) {
+            return getBookshelf(page)
+        }
         val url = if (query.isNotEmpty()) {
             "$baseUrl/s/${query}_p$page.html"
         } else {
@@ -144,6 +147,35 @@ abstract class Manhuagui :
             }
             else -> parseMangaList(document)
         }
+    }
+
+    /**
+     * The logged-in user's 我的书架, 20 manga a page. The login cookie comes from the app's WebView, so
+     * the user logs in there first; logged out, the site redirects to its login page.
+     */
+    private suspend fun getBookshelf(page: Int): MangasPage {
+        val response = client.get("$baseUrl/user/book/shelf/$page")
+        if (response.request.url.encodedPath.startsWith("/user/login")) {
+            response.close()
+            throw Exception("请先登录：在漫画柜的浏览页打开WebView，登录账号后返回再试")
+        }
+        val document = response.asJsoup()
+        val mangas = document.select(".dy_content_li").mapNotNull { item ->
+            val link = item.selectFirst(".dy_img a[href*=/comic/]") ?: return@mapNotNull null
+            SManga.create().apply {
+                url = BOOKSHELF_MANGA_PATH_REGEX.find(link.attr("href"))?.value ?: return@mapNotNull null
+                title = item.selectFirst(".dy_r h3 a")?.text()?.takeIf { it.isNotEmpty() }
+                    ?: link.attr("title").ifEmpty { link.text() }
+                thumbnail_url = link.selectFirst("img")?.let { img ->
+                    img.absUrl("src").ifEmpty { img.absUrl("data-src") }
+                }
+            }
+        }
+        // "共N记录" gives the total; without it, a full page means there may be another.
+        val total = document.selectFirst(".flickr.right span")?.text()
+            ?.let { BOOKSHELF_TOTAL_REGEX.find(it)?.groupValues?.get(1)?.toIntOrNull() }
+        val hasNextPage = if (total != null) page * BOOKSHELF_PAGE_SIZE < total else mangas.size >= BOOKSHELF_PAGE_SIZE
+        return MangasPage(mangas, hasNextPage)
     }
 
     private fun String.toPathOrEmpty(prefix: String = "/", suffix: String = ""): String = if (isEmpty()) {
@@ -435,6 +467,7 @@ abstract class Manhuagui :
     private fun getShowR18(): Boolean = preferences.getBoolean(SHOW_R18_PREF, false)
 
     override fun getFilterList(data: JsonElement?) = FilterList(
+        BookshelfFilter(),
         SortFilter(),
         LocaleFilter(),
         GenreFilter(),
@@ -447,6 +480,9 @@ abstract class Manhuagui :
     companion object {
         private val YEAR_REGEX = Regex("""\d{4}""")
         private val CHAPTER_ID_REGEX = Regex("""/(\d+)\.html""")
+        private val BOOKSHELF_MANGA_PATH_REGEX = Regex("""/comic/\d+/""")
+        private val BOOKSHELF_TOTAL_REGEX = Regex("""共(\d+)记录""")
+        private const val BOOKSHELF_PAGE_SIZE = 20
         private const val UPLOAD_ORDER_PREF = "chapterUploadOrder"
 
         // Mihon keeps -2 as "no chapter number" instead of parsing one from the name.
