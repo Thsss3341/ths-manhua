@@ -52,8 +52,9 @@ The **我的书架** filter lists the manga on your 漫画柜 bookshelf. To brin
 2. Create the category you want them in (e.g. *manhuagui*) under **Settings → Library → Categories**.
 3. Turn on **Settings → Browse → Hide entries already in library**, so manga you already have from
    漫画柜 don't show up.
-4. In 漫画柜, open the filter sheet, tick **我的书架** and tap **Filter**. Scroll to the end so every
-   page loads.
+4. In 漫画柜, open the filter sheet, tick **我的书架** and tap **Filter**. The whole bookshelf (up to
+   1,000 manga) loads at once, about a second per 20 manga, so hidden entries can't stop the list
+   from loading further.
 5. Long-press a manga (or use **Bulk selection mode** in the toolbar), tap **Select all**, then
    **Add to library** (the heart). If Komikku finds the same title in your library from another
    source, it asks about duplicates: choose **Skip all**. Pick the category, and the rest are added.
