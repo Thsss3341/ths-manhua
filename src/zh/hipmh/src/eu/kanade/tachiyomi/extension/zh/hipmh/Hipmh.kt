@@ -20,10 +20,11 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import kotlin.time.Instant
 
 /**
- * 嬉皮漫画 (m.hipmh.com). Its catalogue comes from official platforms such as 快看漫画, 腾讯动漫 and
- * webtoon without re-watermarking, so its chapters are complete where the qTcms mirrors (gugu5,
- * yueman, mh160) drop panels. Everything comes from the site's JSON API; the page image list is
- * obfuscated and decoded by [ImageListDecoder].
+ * 嬉皮漫画 (m.hipmh.com). Its catalogue mostly comes from official platforms such as 快看漫画 and
+ * 腾讯动漫, without site watermarks. Its images match those of the qTcms mirrors (gugu5, yueman,
+ * mh160), missing panels included, so it is a cleaner copy rather than a more complete one.
+ * Everything comes from the site's JSON API; the page image list is obfuscated and decoded by
+ * [ImageListDecoder].
  *
  * Manga ids ("mid") look like `bTo3MDU1-zhe-yi-shi-wo-yao-dang-zhi-zun-7048`: base64url("m:7055")
  * followed by the slug. The API only accepts the base64 part.
