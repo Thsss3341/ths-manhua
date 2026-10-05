@@ -150,11 +150,32 @@ abstract class Manhuagui :
     }
 
     /**
-     * The logged-in user's 我的书架, 20 manga a page. The login cookie comes from the app's WebView, so
-     * the user logs in there first; logged out, the site redirects to its login page.
+     * The logged-in user's 我的书架. The site shows it 20 manga a page, but each page of results here
+     * holds up to [BOOKSHELF_SITE_PAGES_PER_PAGE] of those pages, normally the whole bookshelf: apps
+     * that hide entries already in the library only load the next page while some entry is shown,
+     * so a first page of manga that are all in the library would otherwise end the list.
+     *
+     * The login cookie comes from the app's WebView, so the user logs in there first; logged out,
+     * the site redirects to its login page.
      */
     private suspend fun getBookshelf(page: Int): MangasPage {
-        val response = client.get("$baseUrl/user/book/shelf/$page")
+        val firstSitePage = (page - 1) * BOOKSHELF_SITE_PAGES_PER_PAGE + 1
+        val lastSitePage = firstSitePage + BOOKSHELF_SITE_PAGES_PER_PAGE - 1
+        val mangas = LinkedHashMap<String, SManga>()
+        for (sitePage in firstSitePage..lastSitePage) {
+            val shelfPage = getBookshelfPage(sitePage)
+            val added = shelfPage.mangas.count { mangas.putIfAbsent(it.url, it) == null }
+            // Stop at an empty page, or one that repeats earlier entries (some sites serve the last
+            // page again past the end).
+            if (added == 0 || !shelfPage.hasMore) return MangasPage(mangas.values.toList(), hasNextPage = false)
+        }
+        return MangasPage(mangas.values.toList(), hasNextPage = true)
+    }
+
+    private class BookshelfPage(val mangas: List<SManga>, val hasMore: Boolean)
+
+    private suspend fun getBookshelfPage(sitePage: Int): BookshelfPage {
+        val response = client.get("$baseUrl/user/book/shelf/$sitePage")
         if (response.request.url.encodedPath.startsWith("/user/login")) {
             response.close()
             throw Exception("请先登录：在漫画柜的浏览页打开WebView，登录账号后返回再试")
@@ -171,11 +192,11 @@ abstract class Manhuagui :
                 }
             }
         }
-        // "共N记录" gives the total; without it, a full page means there may be another.
+        // "共N记录" gives the total; without it, a non-empty page means there may be another.
         val total = document.selectFirst(".flickr.right span")?.text()
             ?.let { BOOKSHELF_TOTAL_REGEX.find(it)?.groupValues?.get(1)?.toIntOrNull() }
-        val hasNextPage = if (total != null) page * BOOKSHELF_PAGE_SIZE < total else mangas.size >= BOOKSHELF_PAGE_SIZE
-        return MangasPage(mangas, hasNextPage)
+        val hasMore = if (total != null) sitePage * BOOKSHELF_PAGE_SIZE < total else mangas.isNotEmpty()
+        return BookshelfPage(mangas, hasMore)
     }
 
     private fun String.toPathOrEmpty(prefix: String = "/", suffix: String = ""): String = if (isEmpty()) {
@@ -483,6 +504,7 @@ abstract class Manhuagui :
         private val BOOKSHELF_MANGA_PATH_REGEX = Regex("""/comic/\d+/""")
         private val BOOKSHELF_TOTAL_REGEX = Regex("""共(\d+)记录""")
         private const val BOOKSHELF_PAGE_SIZE = 20
+        private const val BOOKSHELF_SITE_PAGES_PER_PAGE = 50
         private const val UPLOAD_ORDER_PREF = "chapterUploadOrder"
 
         // Mihon keeps -2 as "no chapter number" instead of parsing one from the name.

@@ -10,7 +10,7 @@ keiyoushi {
     // Mihon's extension list, while the unchanged source name keeps the same source id, so
     // library entries carry over when switching between the two.
     pkgName = "zh.manhuaguiths"
-    versionCode = 4
+    versionCode = 5
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 
