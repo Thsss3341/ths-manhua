@@ -42,6 +42,24 @@ ids on the site grow with each upload). Choose **By source** in the app's chapte
 in upload order. To list them grouped by section as on the site, turn off **章节按上传顺序排列** in
 the extension settings and refresh the manga.
 
+### Importing 我的书架 (漫画柜)
+
+The **我的书架** filter lists the manga on your 漫画柜 bookshelf. To bring them into your library
+(Komikku):
+
+1. Log in: open 漫画柜 in **Browse**, tap the WebView (globe) button, log in to your account on the
+   site, then go back.
+2. Create the category you want them in (e.g. *manhuagui*) under **Settings → Library → Categories**.
+3. Turn on **Settings → Browse → Hide entries already in library**, so manga you already have from
+   漫画柜 don't show up.
+4. In 漫画柜, open the filter sheet, tick **我的书架** and tap **Filter**. Scroll to the end so every
+   page loads.
+5. Long-press a manga (or use **Bulk selection mode** in the toolbar), tap **Select all**, then
+   **Add to library** (the heart). If Komikku finds the same title in your library from another
+   source, it asks about duplicates: choose **Skip all**. Pick the category, and the rest are added.
+
+The extension can't write to the library itself, which is why the last steps happen in the app.
+
 ### MAL tracking (漫画柜)
 
 MyAnimeList can't find 漫画柜's Chinese titles. In the extension settings, set **标题语言（方便MAL追踪）**:
