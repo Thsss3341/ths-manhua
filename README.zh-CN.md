@@ -142,6 +142,6 @@ MyAnimeList 搜不到漫画柜的中文标题。在扩展设置中设定 **标�
 
 ## 致谢
 
-漫画柜扩展和构建工具改编自 [keiyoushi/extensions-source](https://github.com/keiyoushi/extensions-source)，采用 [Apache License 2.0](LICENSE-APACHE) 许可；其余部分采用 [MIT License](LICENSE)。
+漫画柜扩展和构建工具改编自 [keiyoushi/extensions-source](https://github.com/keiyoushi/extensions-source)。整个仓库采用 [Apache License 2.0](LICENSE) 许可。
 
 本项目与 Mihon、Komikku 及上述网站均无关联。

@@ -180,7 +180,7 @@ Search in 漫画大全 instead: it has the same catalogue and a full search.
 ## Credits
 
 The 漫画柜 extension and the build tooling are adapted from
-[keiyoushi/extensions-source](https://github.com/keiyoushi/extensions-source) under the
-[Apache License 2.0](LICENSE-APACHE). Everything else is under the [MIT License](LICENSE).
+[keiyoushi/extensions-source](https://github.com/keiyoushi/extensions-source). The whole repository
+is under the [Apache License 2.0](LICENSE).
 
 This project is not affiliated with Mihon, Komikku or any of the sites above.
