@@ -2,6 +2,11 @@
 
 English | [简体中文](README.zh-CN.md)
 
+> [!NOTE]
+> This is a personal project, maintained for my own reading. Extensions may break when a site
+> changes, and fixes depend on my free time. Most of the code was written with the help of AI
+> (Claude Code) and tested by me on my own device.
+
 A [Mihon](https://mihon.app) extension repository for Chinese manga sites. It works in Mihon and in
 apps built on it, such as Komikku.
 

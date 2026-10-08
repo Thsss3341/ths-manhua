@@ -2,6 +2,9 @@
 
 [English](README.md) | 简体中文
 
+> [!NOTE]
+> 这是个人项目，主要供自己阅读使用。网站改版时扩展可能失效，修复视个人时间而定。大部分代码在 AI（Claude Code）协助下编写，并由我本人在设备上测试。
+
 一个收录中文漫画网站的 [Mihon](https://mihon.app) 扩展仓库，可在 Mihon 以及基于它的 App（如 Komikku）中使用。
 
 ## 目录
