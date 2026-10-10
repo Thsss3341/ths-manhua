@@ -17,6 +17,10 @@ import kotlinx.serialization.json.JsonElement
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Response
+import java.io.IOException
 import kotlin.time.Instant
 
 /**
@@ -33,6 +37,24 @@ import kotlin.time.Instant
 abstract class Hipmh : KeiSource() {
 
     override fun Headers.Builder.configureHeaders(): Headers.Builder = add("Referer", "$baseUrl/")
+
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = addInterceptor(::retryOnNetworkError)
+
+    // Connections to the site are sometimes reset mid-request, which fails a manga in a
+    // library update. Requests here are all GETs, so retrying them is safe.
+    private fun retryOnNetworkError(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        var attempt = 1
+        while (true) {
+            try {
+                return chain.proceed(request)
+            } catch (e: IOException) {
+                if (request.method != "GET" || chain.call().isCanceled() || attempt >= MAX_ATTEMPTS) throw e
+                Thread.sleep(RETRY_DELAY_MS * attempt)
+                attempt++
+            }
+        }
+    }
 
     override suspend fun getPopularManga(page: Int): MangasPage = fetchMangaList(page, FilterList(SortFilter(SORT_POPULAR)))
 
@@ -231,6 +253,8 @@ abstract class Hipmh : KeiSource() {
         private const val PAGE_SIZE = 20
         private const val CHAPTER_PAGE_SIZE = 50
         private const val MAX_NEWER_CHAPTERS = 20
+        private const val MAX_ATTEMPTS = 3
+        private const val RETRY_DELAY_MS = 1000L
         private val LOCALE_PREFIXES = setOf("en", "ja", "ko")
         private const val BASE64_URL_FLAGS =
             Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
