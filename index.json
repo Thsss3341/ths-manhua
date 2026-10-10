@@ -32,13 +32,13 @@
         "name": "Hipmh",
         "packageName": "eu.kanade.tachiyomi.extension.zh.hipmh",
         "resources": {
-          "apkUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/apk/tachiyomi-zh.hipmh-v1.6.1.apk",
+          "apkUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/apk/tachiyomi-zh.hipmh-v1.6.2.apk",
           "iconUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/icon/eu.kanade.tachiyomi.extension.zh.hipmh.png",
-          "jarUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/jar/tachiyomi-zh.hipmh-v1.6.1.jar"
+          "jarUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/jar/tachiyomi-zh.hipmh-v1.6.2.jar"
         },
         "extensionLib": "1.6",
-        "versionCode": "106001",
-        "versionName": "1.6.1",
+        "versionCode": "106002",
+        "versionName": "1.6.2",
         "contentWarning": "CONTENT_WARNING_MIXED",
         "sources": [
           {
