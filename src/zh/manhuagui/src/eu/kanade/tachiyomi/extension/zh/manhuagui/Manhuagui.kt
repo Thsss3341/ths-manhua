@@ -23,6 +23,7 @@ import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
 import keiyoushi.utils.tryParseDate
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -51,6 +52,8 @@ abstract class Manhuagui :
     private val preferences: SharedPreferences by getPreferencesLazy()
 
     private val malTitles by lazy { MalTitles(network.client, preferences) }
+
+    private val updateTracker by lazy { UpdateTracker(preferences) { page -> client.get("$baseUrl/list/update_p$page.html").asJsoup() } }
 
     private val imageServer = arrayOf("https://i.hamreus.com", "https://cf.hamreus.com")
     private val mobileWebsiteUrl: String
@@ -251,9 +254,14 @@ abstract class Manhuagui :
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
+        val bid = Regex("""\d+""").find(manga.url)?.value
+        if (bid != null && fetchChapters && !fetchDetails && isUnchanged(bid, chapters)) {
+            // Same order as parseChapterList gives in upload order.
+            return SMangaUpdate(manga, chapters.sortedByDescending(::chapterId))
+        }
+        val checkedOn = updateTracker.today()
         val document = client.get(baseUrl + manga.url).asJsoup()
 
-        val bid = Regex("""\d+""").find(manga.url)?.value
         if (fetchDetails && bid != null) {
             GlobalScope.launch(Dispatchers.IO) {
                 delay(1000L)
@@ -286,8 +294,29 @@ abstract class Manhuagui :
             applyMalTitle(manga, document)
         }
 
-        return SMangaUpdate(manga, parseChapterList(document))
+        val chapterList = parseChapterList(document)
+        if (bid != null && fetchChapters) updateTracker.markChecked(bid, checkedOn)
+        return SMangaUpdate(manga, chapterList)
     }
+
+    // A library update (chapters only) can keep a manga's chapters when the site's update list
+    // shows no update since it was last checked. Manual refreshes, which also fetch details,
+    // always open the page.
+    private suspend fun isUnchanged(bid: String, chapters: List<SChapter>): Boolean {
+        if (chapters.isEmpty() || !preferences.getBoolean(SMART_UPDATE_PREF, true) || !preferences.getBoolean(UPLOAD_ORDER_PREF, true)) {
+            return false
+        }
+        val since = updateTracker.lastChecked(bid) ?: return false
+        return try {
+            updateTracker.unchangedSince(bid, since)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun chapterId(chapter: SChapter): Long = CHAPTER_ID_REGEX.find(chapter.url)?.groupValues?.get(1)?.toLongOrNull() ?: -1L
 
     private suspend fun applyMalTitle(manga: SManga, document: Document) {
         if (!malTitles.isEnabled) return
@@ -386,7 +415,7 @@ abstract class Manhuagui :
         // Chapter ids grow with each upload across all sections, so ordering by id puts the list
         // in upload order, newest first: the app's "by source" sort then follows upload order.
         if (preferences.getBoolean(UPLOAD_ORDER_PREF, true)) {
-            return chapters.sortedByDescending { CHAPTER_ID_REGEX.find(it.url)?.groupValues?.get(1)?.toLongOrNull() ?: -1L }
+            return chapters.sortedByDescending(::chapterId)
         }
         return chapters
     }
@@ -459,6 +488,14 @@ abstract class Manhuagui :
             setDefaultValue(true)
             screen.addPreference(this)
         }
+        CheckBoxPreference(screen.context).run {
+            key = SMART_UPDATE_PREF
+            title = "更新书架时只检查有更新的漫画"
+            summary = "更新书架时先读取漫画柜的「最近更新」列表，只打开有更新的漫画，大幅减少请求次数，降低IP被封的几率。" +
+                "每部漫画第一次更新、超过两周没检查过的漫画，以及手动下拉刷新时仍会打开漫画页面。需要开启「章节按上传顺序排列」。"
+            setDefaultValue(true)
+            screen.addPreference(this)
+        }
 
         ListPreference(screen.context).run {
             key = MalTitles.PREF_KEY_TITLE_LANGUAGE
@@ -506,6 +543,7 @@ abstract class Manhuagui :
         private const val BOOKSHELF_PAGE_SIZE = 20
         private const val BOOKSHELF_SITE_PAGES_PER_PAGE = 50
         private const val UPLOAD_ORDER_PREF = "chapterUploadOrder"
+        private const val SMART_UPDATE_PREF = "smartLibraryUpdate"
 
         // Mihon keeps -2 as "no chapter number" instead of parsing one from the name.
         private const val UNNUMBERED_CHAPTER = -2f
