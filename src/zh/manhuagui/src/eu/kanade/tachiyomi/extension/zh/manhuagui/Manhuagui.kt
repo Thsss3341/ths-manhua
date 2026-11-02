@@ -292,6 +292,8 @@ abstract class Manhuagui :
         if (fetchDetails) {
             manga.parseDetails(document)
             applyMalTitle(manga, document)
+        } else {
+            manga.refreshLastUpdateLine(document)
         }
 
         val chapterList = parseChapterList(document)
@@ -347,7 +349,8 @@ abstract class Manhuagui :
 
     private fun SManga.parseDetails(document: Document) {
         title = document.selectFirst("div.book-title > h1:nth-child(1)")?.text() ?: ""
-        description = document.selectFirst("div#intro-all")?.text() ?: ""
+        val intro = document.selectFirst("div#intro-all")?.text()?.takeIf { it.isNotBlank() }
+        description = listOfNotNull(lastUpdateLine(document), intro).joinToString("\n\n")
         thumbnail_url = document.selectFirst("p.hcover > img")?.absUrl("src")
         author = document.select("span:contains(漫画作者) > a , span:contains(漫畫作者) > a").text().replace(" ", ", ")
         genre = document.select("span:contains(漫画剧情) > a , span:contains(漫畫劇情) > a").text().replace(" ", ", ")
@@ -356,6 +359,22 @@ abstract class Manhuagui :
             "已完结", "已完結" -> SManga.COMPLETED
             else -> SManga.UNKNOWN
         }
+    }
+
+    // "最近更新：2026-11-02（第186.2话）", from the page's 「最近于 [date] 更新至 [chapter]」 status line.
+    private fun lastUpdateLine(document: Document): String? {
+        val status = document.selectFirst("div.book-detail > ul.detail-list > li.status") ?: return null
+        val date = status.select("span.red").map { it.text().trim() }.firstOrNull { DATE_REGEX.matches(it) } ?: return null
+        val latest = status.selectFirst("a.blue")?.text()?.trim()
+        return if (latest.isNullOrEmpty()) "$LAST_UPDATE_PREFIX$date" else "$LAST_UPDATE_PREFIX$date（$latest）"
+    }
+
+    // Chapter-only updates leave the details alone, but keep the last update line current.
+    private fun SManga.refreshLastUpdateLine(document: Document) {
+        val line = lastUpdateLine(document) ?: return
+        val lines = description?.lines() ?: return
+        val index = lines.indexOfFirst { it.startsWith(LAST_UPDATE_PREFIX) }
+        if (index >= 0) description = lines.toMutableList().apply { set(index, line) }.joinToString("\n")
     }
 
     private fun parseChapterList(document: Document): List<SChapter> {
@@ -538,6 +557,8 @@ abstract class Manhuagui :
     companion object {
         private val YEAR_REGEX = Regex("""\d{4}""")
         private val CHAPTER_ID_REGEX = Regex("""/(\d+)\.html""")
+        private val DATE_REGEX = Regex("""\d{4}-\d{2}-\d{2}""")
+        private const val LAST_UPDATE_PREFIX = "最近更新："
         private val BOOKSHELF_MANGA_PATH_REGEX = Regex("""/comic/\d+/""")
         private val BOOKSHELF_TOTAL_REGEX = Regex("""共(\d+)记录""")
         private const val BOOKSHELF_PAGE_SIZE = 20
