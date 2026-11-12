@@ -80,13 +80,13 @@
         "name": "Yueman",
         "packageName": "eu.kanade.tachiyomi.extension.zh.yueman",
         "resources": {
-          "apkUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/apk/tachiyomi-zh.yueman-v1.6.4.apk",
+          "apkUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/apk/tachiyomi-zh.yueman-v1.6.5.apk",
           "iconUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/icon/eu.kanade.tachiyomi.extension.zh.yueman.png",
-          "jarUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/jar/tachiyomi-zh.yueman-v1.6.4.jar"
+          "jarUrl": "https://raw.githubusercontent.com/Thsss3341/ths-manhua/repo/jar/tachiyomi-zh.yueman-v1.6.5.jar"
         },
         "extensionLib": "1.6",
-        "versionCode": "106004",
-        "versionName": "1.6.4",
+        "versionCode": "106005",
+        "versionName": "1.6.5",
         "contentWarning": "CONTENT_WARNING_SAFE",
         "sources": [
           {
