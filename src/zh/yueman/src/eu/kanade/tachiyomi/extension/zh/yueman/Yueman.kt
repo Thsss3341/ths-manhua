@@ -40,7 +40,10 @@ import java.text.Normalizer
 @Source
 abstract class Yueman : KeiSource() {
 
+    // The site sits behind an anti-CC firewall that answers fast bursts of requests, such as a
+    // library update, with a slide verification page, so keep requests to it slow.
     override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = rateLimit(permits = 4) { it.host.endsWith(GUGU5_HOST) }
+        .rateLimit(permits = 1) { it.host == baseUrl.toHttpUrl().host }
 
     override suspend fun getPopularManga(page: Int): MangasPage = parseItemBoxList(fetchDocument("$baseUrl/manhua/o/m_waphit.html"))
 
@@ -252,7 +255,17 @@ abstract class Yueman : KeiSource() {
 
     // yueman pages declare GB2312 but may contain GBK-only characters; gugu5 pages are UTF-8 or GB2312.
     private suspend fun fetchHtml(url: String): String {
-        val bytes = client.get(url).use { it.body.bytes() }
+        val bytes = client.get(url, ensureSuccess = false).use { response ->
+            val body = response.body.bytes()
+            // The firewall's 「滑动验证」 page loads its slider from /huadong_<hash>.js. Passing it once
+            // in WebView sets a cookie that the app shares with the extension.
+            if (String(body, Charsets.ISO_8859_1).contains(VERIFICATION_SCRIPT)) {
+                val site = if (response.request.url.host.endsWith(GUGU5_HOST)) "古古漫画" else "漫画大全"
+                throw Exception("${site}要求人机验证：请在${site}中打开WebView（地球图标），完成滑动验证后再试")
+            }
+            if (!response.isSuccessful) throw Exception("HTTP error ${response.code}")
+            body
+        }
         val head = String(bytes, 0, minOf(bytes.size, 2048), Charsets.ISO_8859_1)
         val charset = if (GB_CHARSET_REGEX.containsMatchIn(head)) GBK else Charsets.UTF_8
         return String(bytes, charset).removePrefix("\uFEFF")
@@ -277,6 +290,7 @@ abstract class Yueman : KeiSource() {
 
         // "Please bookmark reman.cc" banner appended to some chapters.
         private const val PROMO_IMAGE = "reman.cc/reman.jpg"
+        private const val VERIFICATION_SCRIPT = "/huadong_"
         private val MANGA_ID_REGEX = Regex("""/(?:manhua|p)/(\d+)(?:\.html|/)""")
         private val CHAPTER_ID_REGEX = Regex("""/[pn]/(\d+)/\d+\.html""")
         private val CHAPTER_DATA_REGEX = Regex("""initIntroData\((\[.*])\)""", RegexOption.DOT_MATCHES_ALL)
