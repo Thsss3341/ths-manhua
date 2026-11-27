@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.extension.zh.yueman
 
 import android.util.Base64
+import android.webkit.WebResourceResponse
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
@@ -14,6 +15,7 @@ import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
 import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.parseAs
+import keiyoushi.utils.runWebView
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -26,8 +28,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
 import java.text.Normalizer
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * 漫画大全 (yueman) runs qingtiancms (qTcms). Its current domains are published at http://reman.cc.
@@ -235,14 +239,40 @@ abstract class Yueman : KeiSource() {
     }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val html = fetchHtml(baseUrl + chapter.url)
-        val encoded = IMAGE_LIST_REGEX.find(html)?.groupValues?.get(1)
-            ?: throw Exception("找不到图片列表，页面结构可能已更改")
+        val url = baseUrl + chapter.url
+        val encoded = try {
+            IMAGE_LIST_REGEX.find(fetchHtml(url))?.groupValues?.get(1)
+        } catch (_: BrowserCheckException) {
+            null
+        } ?: imageListViaWebView(url)
         val decoded = String(Base64.decode(encoded, Base64.DEFAULT), Charsets.UTF_8)
         return decoded.split(IMAGE_SEPARATOR)
             .map { it.trim() }
             .filter { it.isNotEmpty() && !it.endsWith(PROMO_IMAGE) }
             .mapIndexed { index, imageUrl -> Page(index, imageUrl = realImageUrl(imageUrl)) }
+    }
+
+    // Chapter pages sit behind a browser check that plain requests can't pass: a 403 page that
+    // reloads itself until the browser is trusted. Open the chapter in a real WebView instead and
+    // read the image list variable the page defines. Images are not loaded, only the list.
+    private suspend fun imageListViaWebView(url: String): String = runWebView(timeout = 30.seconds) {
+        interceptRequest { request ->
+            if (IMAGE_EXTENSION_REGEX.containsMatchIn(request.url.path.orEmpty())) {
+                WebResourceResponse("image/gif", null, ByteArrayInputStream(ByteArray(0)))
+            } else {
+                null
+            }
+        }
+        loadUrl(url)
+        poll {
+            evaluateJs(IMAGE_LIST_JS) { result ->
+                when (val value = runCatching { result.parseAs<String>() }.getOrNull()) {
+                    null, "" -> Unit
+                    VERIFICATION_MARKER -> reject(Exception(verificationMessage("漫画大全")))
+                    else -> resolve(value)
+                }
+            }
+        }
     }
 
     // Mirrors f_qTcms_Pic_curUrl_realpic() in the site's show.js, which moves images off dead hosts.
@@ -259,10 +289,11 @@ abstract class Yueman : KeiSource() {
             val body = response.body.bytes()
             // The firewall's 「滑动验证」 page loads its slider from /huadong_<hash>.js. Passing it once
             // in WebView sets a cookie that the app shares with the extension.
-            if (String(body, Charsets.ISO_8859_1).contains(VERIFICATION_SCRIPT)) {
-                val site = if (response.request.url.host.endsWith(GUGU5_HOST)) "古古漫画" else "漫画大全"
-                throw Exception("${site}要求人机验证：请在${site}中打开WebView（地球图标），完成滑动验证后再试")
+            val text = String(body, Charsets.ISO_8859_1)
+            if (text.contains(VERIFICATION_SCRIPT)) {
+                throw Exception(verificationMessage(if (response.request.url.host.endsWith(GUGU5_HOST)) "古古漫画" else "漫画大全"))
             }
+            if (response.code == 403 && text.contains(RELOAD_SCRIPT)) throw BrowserCheckException()
             if (!response.isSuccessful) throw Exception("HTTP error ${response.code}")
             body
         }
@@ -272,6 +303,10 @@ abstract class Yueman : KeiSource() {
     }
 
     private suspend fun fetchDocument(url: String): Document = fetchHtml(url).asJsoup(url)
+
+    private fun verificationMessage(site: String) = "${site}要求人机验证：请在${site}中打开WebView（地球图标），完成滑动验证后再试"
+
+    private class BrowserCheckException : Exception("漫画大全要求浏览器验证")
 
     private fun mangaPath(id: String) = "/manhua/$id.html"
 
@@ -291,6 +326,11 @@ abstract class Yueman : KeiSource() {
         // "Please bookmark reman.cc" banner appended to some chapters.
         private const val PROMO_IMAGE = "reman.cc/reman.jpg"
         private const val VERIFICATION_SCRIPT = "/huadong_"
+        private const val RELOAD_SCRIPT = "window.location.href"
+        private const val VERIFICATION_MARKER = "#verify"
+        private const val IMAGE_LIST_JS = "(function(){if(typeof qTcms_S_m_murl_e==='string')return qTcms_S_m_murl_e;" +
+            "return document.documentElement.innerHTML.indexOf('/huadong_')>=0?'$VERIFICATION_MARKER':''})()"
+        private val IMAGE_EXTENSION_REGEX = Regex("""\.(?:jpe?g|png|webp|gif)$""", RegexOption.IGNORE_CASE)
         private val MANGA_ID_REGEX = Regex("""/(?:manhua|p)/(\d+)(?:\.html|/)""")
         private val CHAPTER_ID_REGEX = Regex("""/[pn]/(\d+)/\d+\.html""")
         private val CHAPTER_DATA_REGEX = Regex("""initIntroData\((\[.*])\)""", RegexOption.DOT_MATCHES_ALL)
